@@ -79,6 +79,7 @@ static NSString * const kLXCollectionViewKeyPath = @"collectionView";
 @implementation LXReorderableCollectionViewFlowLayout
 
 - (void)setDefaults {
+    _lockToVerticalMovement = NO;
     _scrollingSpeed = 300.0f;
     _scrollingTriggerEdgeInsets = UIEdgeInsetsMake(50.0f, 50.0f, 50.0f, 50.0f);
 }
@@ -290,7 +291,7 @@ static NSString * const kLXCollectionViewKeyPath = @"collectionView";
     }
     
     self.currentViewCenter = LXS_CGPointAdd(self.currentViewCenter, translation);
-    self.currentView.center = LXS_CGPointAdd(self.currentViewCenter, self.panTranslationInCollectionView);
+    self.currentView.center = self.lockToVerticalMovement ? CGPointMake(self.currentView.center.x, LXS_CGPointAdd(self.currentViewCenter, self.panTranslationInCollectionView).y) : LXS_CGPointAdd(self.currentViewCenter, self.panTranslationInCollectionView);
     self.collectionView.contentOffset = LXS_CGPointAdd(contentOffset, translation);
 }
 
@@ -339,9 +340,12 @@ static NSString * const kLXCollectionViewKeyPath = @"collectionView";
              animations:^{
                  __strong typeof(self) strongSelf = weakSelf;
                  if (strongSelf) {
-                     strongSelf.currentView.transform = CGAffineTransformMakeScale(1.1f, 1.1f);
                      highlightedImageView.alpha = 0.0f;
-                     imageView.alpha = 1.0f;
+                     imageView.alpha = 0.7f;
+                     imageView.layer.shadowColor = [UIColor blackColor].CGColor;
+                     imageView.layer.shadowOffset = CGSizeZero;
+                     imageView.layer.shadowRadius = 2.f;
+                     imageView.layer.shadowOpacity = 0.7f;
                  }
              }
              completion:^(BOOL finished) {
@@ -381,7 +385,6 @@ static NSString * const kLXCollectionViewKeyPath = @"collectionView";
                  animations:^{
                      __strong typeof(self) strongSelf = weakSelf;
                      if (strongSelf) {
-                         strongSelf.currentView.transform = CGAffineTransformMakeScale(1.0f, 1.0f);
                          strongSelf.currentView.center = layoutAttributes.center;
                      }
                  }
@@ -412,7 +415,10 @@ static NSString * const kLXCollectionViewKeyPath = @"collectionView";
         case UIGestureRecognizerStateBegan:
         case UIGestureRecognizerStateChanged: {
             self.panTranslationInCollectionView = [gestureRecognizer translationInView:self.collectionView];
-            CGPoint viewCenter = self.currentView.center = LXS_CGPointAdd(self.currentViewCenter, self.panTranslationInCollectionView);
+
+            CGPoint movement = self.lockToVerticalMovement ? CGPointMake(self.currentViewCenter.x, LXS_CGPointAdd(self.currentViewCenter, self.panTranslationInCollectionView).y) : LXS_CGPointAdd(self.currentViewCenter, self.panTranslationInCollectionView);
+            
+            CGPoint viewCenter = self.currentView.center = movement;
             
             [self invalidateLayoutIfNecessary];
             
